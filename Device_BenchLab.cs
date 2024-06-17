@@ -33,7 +33,7 @@ public class Device_BENCHLAB
     public const int CAL_FACTORY = 0;
     public const int CAL_USER = 1;
 
-    readonly string[] PowerSensorNames = { "EPS1", "EPS2", "ATX3V", "ATX5V", "ATX5VSB", "ATX12V", "PCIE1", "PCIE2", "PCIE3", "HPWR1", "HPWR2" };
+    public static readonly string[] PowerSensorNames = { "EPS1", "EPS2", "ATX3V", "ATX5V", "ATX5VSB", "ATX12V", "PCIE1", "PCIE2", "PCIE3", "HPWR1", "HPWR2" };
 
     private const int DEVICE_MUTEX_WAIT = 500;
 
@@ -131,7 +131,7 @@ public class Device_BENCHLAB
 
     #region Device-specific Enums
 
-public enum FAN_MODE : byte
+    public enum FAN_MODE : byte
     {
         FAN_MODE_TEMP_CONTROL,
         FAN_MODE_FIXED,
@@ -215,7 +215,7 @@ public enum FAN_MODE : byte
     };
 
 
-private static byte[] ToByteArray(UART_CMD uartCMD, int len = 0)
+    private static byte[] ToByteArray(UART_CMD uartCMD, int len = 0)
     {
         byte[] returnArray = new byte[len + 1];
         returnArray[0] = (byte)uartCMD;
@@ -278,6 +278,49 @@ private static byte[] ToByteArray(UART_CMD uartCMD, int len = 0)
 
     #region Public Methods
 
+    public Device_BENCHLAB()
+    {
+
+        int sensorCount;
+        for (sensorCount = 0; sensorCount < SENSOR_VIN_NUM; sensorCount++)
+        {
+            SensorList.Add(new Sensor(sensorCount, $"V{sensorCount + 1}", $"Voltage #{sensorCount + 1}", SensorType.Voltage));
+        }
+
+        SensorList.Add(new Sensor(sensorCount++, "VDD", "Supply Voltage", SensorType.Voltage));
+        SensorList.Add(new Sensor(sensorCount++, "VREF", "Reference Voltage", SensorType.Voltage));
+        SensorList.Add(new Sensor(sensorCount++, "T_CHIP", "Chip Temperature", SensorType.Temperature));
+
+        for (int i = 0; i < SENSOR_TS_NUM; i++)
+        {
+            SensorList.Add(new Sensor(sensorCount++, $"TS{i + 1}", $"Temperature Sensor #{i + 1}", SensorType.Temperature));
+        }
+
+        SensorList.Add(new Sensor(sensorCount++, "T_AMB", "Ambient Temperature", SensorType.Temperature));
+        SensorList.Add(new Sensor(sensorCount++, "HUM", "Humidity", SensorType.Humidity));
+        //SensorList.Add(new Sensor(sensorCount++, "FAN_SEL", "Fan Select", SensorType.Voltage));
+        SensorList.Add(new Sensor(sensorCount++, "FAN_EXT", "Fan External", SensorType.Duty));
+
+        SensorList.Add(new Sensor(sensorCount++, $"SYS_P", "System Power", SensorType.Power));
+        SensorList.Add(new Sensor(sensorCount++, $"CPU_P", "CPU Power", SensorType.Power));
+        SensorList.Add(new Sensor(sensorCount++, $"GPU_P", "GPU Power", SensorType.Power));
+        SensorList.Add(new Sensor(sensorCount++, $"MB_P", "Motherboard Power", SensorType.Power));
+
+        foreach (string power_sensor in PowerSensorNames)
+        {
+            SensorList.Add(new Sensor(sensorCount++, $"{power_sensor}_V", $"{power_sensor} Voltage", SensorType.Voltage));
+            SensorList.Add(new Sensor(sensorCount++, $"{power_sensor}_I", $"{power_sensor} Current", SensorType.Current));
+            SensorList.Add(new Sensor(sensorCount++, $"{power_sensor}_P", $"{power_sensor} Power", SensorType.Power));
+        }
+
+        for (int i = 0; i < FAN_NUM; i++)
+        {
+            SensorList.Add(new Sensor(sensorCount++, $"FAN{i + 1}_T", $"Fan Speed #{i + 1}", SensorType.Revolutions));
+            SensorList.Add(new Sensor(sensorCount++, $"FAN{i + 1}_D", $"Fan Duty #{i + 1}", SensorType.Duty));
+        }
+
+    }
+
     #region Connection
 
     public virtual bool Connect(string comPort = "COM34")
@@ -323,45 +366,6 @@ private static byte[] ToByteArray(UART_CMD uartCMD, int len = 0)
             Status = DeviceStatus.ERROR;
             deviceMutex.ReleaseMutex();
             return false;
-        }
-
-        SensorList.Clear();
-        int sensorCount;
-        for (sensorCount = 0; sensorCount < SENSOR_VIN_NUM; sensorCount++)
-        {
-            SensorList.Add(new Sensor(sensorCount, $"V{sensorCount + 1}", $"Voltage #{sensorCount + 1}", SensorType.Voltage));
-        }
-
-        SensorList.Add(new Sensor(sensorCount++, "VDD", "Supply Voltage", SensorType.Voltage));
-        SensorList.Add(new Sensor(sensorCount++, "VREF", "Reference Voltage", SensorType.Voltage));
-        SensorList.Add(new Sensor(sensorCount++, "T_CHIP", "Chip Temperature", SensorType.Temperature));
-
-        for (int i = 0; i < SENSOR_TS_NUM; i++)
-        {
-            SensorList.Add(new Sensor(sensorCount++, $"TS{i + 1}", $"Temperature Sensor #{i + 1}", SensorType.Temperature));
-        }
-
-        SensorList.Add(new Sensor(sensorCount++, "T_AMB", "Ambient Temperature", SensorType.Temperature));
-        SensorList.Add(new Sensor(sensorCount++, "HUM", "Humidity", SensorType.Humidity));
-        //SensorList.Add(new Sensor(sensorCount++, "FAN_SEL", "Fan Select", SensorType.Voltage));
-        SensorList.Add(new Sensor(sensorCount++, "FAN_EXT", "Fan External", SensorType.Duty));
-
-        SensorList.Add(new Sensor(sensorCount++, $"SYS_P", "System Power", SensorType.Power));
-        SensorList.Add(new Sensor(sensorCount++, $"CPU_P", "CPU Power", SensorType.Power));
-        SensorList.Add(new Sensor(sensorCount++, $"GPU_P", "GPU Power", SensorType.Power));
-        SensorList.Add(new Sensor(sensorCount++, $"MB_P", "Motherboard Power", SensorType.Power));
-
-        foreach (string power_sensor in PowerSensorNames)
-        {
-            SensorList.Add(new Sensor(sensorCount++, $"{power_sensor}_V", $"{power_sensor} Voltage", SensorType.Voltage));
-            SensorList.Add(new Sensor(sensorCount++, $"{power_sensor}_I", $"{power_sensor} Current", SensorType.Current));
-            SensorList.Add(new Sensor(sensorCount++, $"{power_sensor}_P", $"{power_sensor} Power", SensorType.Power));
-        }
-
-        for (int i = 0; i < FAN_NUM; i++)
-        {
-            SensorList.Add(new Sensor(sensorCount++, $"FAN{i + 1}_T", $"Fan Speed #{i + 1}", SensorType.Revolutions));
-            SensorList.Add(new Sensor(sensorCount++, $"FAN{i + 1}_D", $"Fan Duty #{i + 1}", SensorType.Duty));
         }
 
         bool connected = CheckWelcomeMessage();
